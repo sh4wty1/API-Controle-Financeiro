@@ -5,7 +5,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 
 > **Retomando com IA:** "Leia `docs/GUIDE.md` e `docs/ROADMAP.md` e me ajude a continuar de onde parei."
 
-**Última atualização:** 15/09/2026, parei no passo 1 (banco ainda não configurado)
+**Última atualização:** 15/09/2026, passo 1 concluído, começando passo 2
 
 ---
 
@@ -18,16 +18,17 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - [x] README
 - [x] Primeiro commit do projeto
 
-### Passo 1: Postgres + app vazia rodando ⏳
-- [ ] Instalar Docker Desktop no PC de casa
-- [ ] Escrever `docker-compose.yml` na raiz (modelo no GUIDE)
-- [ ] `docker compose up -d`
-- [ ] Configurar `application.yaml`: `datasource.url/username/password`, `jpa.hibernate.ddl-auto: validate`, `jpa.show-sql: true`
-- [ ] Rodar `FinancasApplication` e ler o log/erro com calma
+### Passo 1: Postgres + app vazia rodando ✅
+- [x] Instalar Docker Desktop no PC de casa
+- [x] Escrever `docker-compose.yml` na raiz (modelo no GUIDE)
+- [x] `docker compose up -d`
+- [x] Configurar `application.yaml`: `datasource.url/username/password`, `jpa.hibernate.ddl-auto: validate`, `jpa.show-sql: true`
+- [x] Rodar `FinancasApplication` e ler o log/erro com calma
 - [ ] Apagar `src/main/resources/templates/` (não vou usar template engine)
-- [ ] Responder: quais 3 anotações `@SpringBootApplication` agrupa? Qual faz o scan dos pacotes?
+- [x] Responder: quais 3 anotações `@SpringBootApplication` agrupa? Qual faz o scan dos pacotes?
+  → `@SpringBootConfiguration` + `@EnableAutoConfiguration` + `@ComponentScan` (essa faz o scan)
 
-### Passo 2: Migration `V1__criar_tabelas.sql`
+### Passo 2: Migration `V1__criar_tabelas.sql` ⏳
 - [ ] Criar em `src/main/resources/db/migration/`
 
 ### Passo 3: Categoria ponta a ponta
@@ -76,3 +77,5 @@ Alternativas pro banco se não der Docker: VPS com Postgres acessado por túnel 
 - **`contextLoads` falha sem banco rodando**: afeta `mvnw test` e `mvnw package`
 - **`POSTGRES_*` no compose só valem na 1ª inicialização**: mudou senha? `docker compose down -v`
 - **Git não versiona pasta vazia**: `static/` e `db/migration/` só aparecem no repo quando tiverem arquivo
+- **Docker Desktop com erro `HCS_E_HYPERV_NOT_INSTALLED` / "WSL2 is not supported"**: hypervisor desligado no boot. Corrige com `bcdedit /set "{current}" hypervisorlaunchtype auto` (admin) + reiniciar o PC
+- **Erro de autenticação `FATAL: password authentication failed` mesmo com usuário/senha certos no `application.yaml`**: pode ter um Postgres nativo instalado no Windows ocupando a porta 5432 e roubando a conexão do container. Checar com `netstat -ano | findstr :5432` e `Get-Service *postgres*`; parar o serviço nativo se for o caso

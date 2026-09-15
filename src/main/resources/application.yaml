@@ -1,3 +1,11 @@
 spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/financas
+    username: app
+    password: app
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
   application:
     name: financas
