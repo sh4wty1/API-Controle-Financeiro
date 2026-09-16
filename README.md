@@ -2,7 +2,7 @@
 
 Projeto de estudo pra aprender **Java + Spring Boot** na prática.
 
-A ideia não é construir a API de finanças mais completa do mundo. É um CRUD de categorias e lançamentos com um relatório mensal, simples de propósito, pra servir de desculpa pra aprender a linguagem, o framework e o ecossistema (JPA, Flyway, validação, testes...).
+A ideia não é construir a API de finanças mais completa do mundo. É um CRUD de categorias e lançamentos com um relatório mensal, simples de propósito, pra servir de desculpa pra relembrar a linguagem, o framework e o ecossistema (JPA, Flyway, validação, testes...).
 
 Tudo é escrito na mão. IA só entra pra explicar conceitos e revisar código, nunca pra escrever a solução.
 
