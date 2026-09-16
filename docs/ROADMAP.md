@@ -5,7 +5,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 
 > **Retomando com IA:** "Leia `docs/GUIDE.md` e `docs/ROADMAP.md` e me ajude a continuar de onde parei."
 
-**Última atualização:** 16/09/2026, passo 3 em andamento — entidade/repository/service prontos, falta o controller
+**Última atualização:** 16/09/2026, passo 3 concluído — CRUD de Categoria ponta a ponta funcionando. Próximo: passo 4 (tratamento de erros)
 
 ---
 
@@ -35,13 +35,17 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - [x] Flyway aplicou na subida da app (`flyway_schema_history` versão 1, success)
 - FK sem `ON DELETE` → o próprio banco já barra apagar categoria com lançamentos
 
-### Passo 3: Categoria ponta a ponta ⏳
+### Passo 3: Categoria ponta a ponta ✅
 - [x] `Categoria` (@Entity): id identity, nome/tipo, validação centralizada no método `atualizar` (chamado também pelo construtor)
 - [x] `CategoriaRepository` (extends JpaRepository<Categoria, Long>)
 - [x] `CategoriaService`: create, findById, getAll, update, delete
-- [ ] `CategoriaController` (@RestController) + DTOs (`dto/CategoriaRequest`, `dto/CategoriaResponse`) — entidade não pode sair do controller
+- [x] `CategoriaController` (@RestController) + DTOs (`dto/CategoriaRequest`, `dto/CategoriaResponse`) — entidade não pode sair do controller
 - Lembrar amanhã: `orElseThrow` desembrulha `Optional<T>` pra `T` — o método precisa retornar `T`, não `Optional<T>`
 - Padrão adotado: sem setters soltos na entidade — só `atualizar(nome, tipo)`, que valida e é reaproveitado pelo construtor
+- Pegadinhas do controller: `.body(x)` é o `T` genérico do `ResponseEntity<T>` — o tipo de retorno declarado no método já fixa esse `T`, então o argumento passado tem que bater (não dá pra devolver `Categoria` num método que promete `ResponseEntity<CategoriaResponse>`)
+- Duas rotas `@GetMapping` sem path próprio colidem (`Ambiguous mapping` na subida) — `findById`/`update`/`delete` precisam de `/{id}` no mapping + `@PathVariable Long id` no parâmetro
+- `HttpStatus.FOUND` é 302 (redirecionamento), não "encontrado" — GET/PUT/DELETE que devolvem o recurso usam `HttpStatus.OK`
+- Campo injetado no controller deveria ser `private final`, não `public final` (encapsulamento)
 ### Passo 4: Tratamento de erros
 ### Passo 5: Lançamentos + regras
 ### Passo 6: Relatório
