@@ -5,7 +5,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 
 > **Retomando com IA:** "Leia `docs/GUIDE.md` e `docs/ROADMAP.md` e me ajude a continuar de onde parei."
 
-**Última atualização:** 15/09/2026, passo 1 concluído, começando passo 2
+**Última atualização:** 15/09/2026, passos 1 e 2 concluídos, começando passo 3
 
 ---
 
@@ -24,14 +24,18 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - [x] `docker compose up -d`
 - [x] Configurar `application.yaml`: `datasource.url/username/password`, `jpa.hibernate.ddl-auto: validate`, `jpa.show-sql: true`
 - [x] Rodar `FinancasApplication` e ler o log/erro com calma
-- [ ] Apagar `src/main/resources/templates/` (não vou usar template engine)
+- [x] ~~Apagar `src/main/resources/templates/`~~ → decidi manter, quero experimentar front aqui também (ver Decisões)
 - [x] Responder: quais 3 anotações `@SpringBootApplication` agrupa? Qual faz o scan dos pacotes?
   → `@SpringBootConfiguration` + `@EnableAutoConfiguration` + `@ComponentScan` (essa faz o scan)
 
-### Passo 2: Migration `V1__criar_tabelas.sql` ⏳
-- [ ] Criar em `src/main/resources/db/migration/`
+### Passo 2: Migration `V1__criar_tabelas.sql` ✅
+- [x] Criar em `src/main/resources/db/migration/`
+- [x] `categoria`: id identity, nome (unique, not null), tipo com `CHECK (tipo IN ('RECEITA','DESPESA'))`
+- [x] `lancamento`: id identity, descricao, valor `NUMERIC(19,2)`, data `DATE`, FK `categoria_id`
+- [x] Flyway aplicou na subida da app (`flyway_schema_history` versão 1, success)
+- FK sem `ON DELETE` → o próprio banco já barra apagar categoria com lançamentos
 
-### Passo 3: Categoria ponta a ponta
+### Passo 3: Categoria ponta a ponta ⏳
 ### Passo 4: Tratamento de erros
 ### Passo 5: Lançamentos + regras
 ### Passo 6: Relatório
