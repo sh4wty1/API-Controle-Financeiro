@@ -16,9 +16,9 @@ public class Categoria {
 
     protected Categoria() {
     }
+
     public Categoria(String nome, TipoCategoria tipo) {
-        this.nome = nome;
-        this.tipo = tipo;
+        atualizar(nome, tipo);
     }
 
     public Long getId() {
@@ -32,4 +32,19 @@ public class Categoria {
     public TipoCategoria getTipo() {
         return tipo;
     }
+    public void atualizar(String nome, TipoCategoria tipo) {
+        if (nome.isBlank()) {
+            throw new IllegalArgumentException("Nome não pode ser vazio");
+        }
+
+        String strTipo = tipo.toString();
+        if (strTipo.isBlank()) {
+            throw new IllegalArgumentException("Tipo não pode ser vazio");
+        }
+
+        this.nome = nome;
+        this.tipo = tipo;
+    }
+
+
 }

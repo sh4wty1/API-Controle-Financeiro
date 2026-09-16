@@ -5,7 +5,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 
 > **Retomando com IA:** "Leia `docs/GUIDE.md` e `docs/ROADMAP.md` e me ajude a continuar de onde parei."
 
-**Última atualização:** 15/09/2026, passos 1 e 2 concluídos, começando passo 3
+**Última atualização:** 16/09/2026, passo 3 em andamento — entidade/repository/service prontos, falta o controller
 
 ---
 
@@ -36,6 +36,12 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - FK sem `ON DELETE` → o próprio banco já barra apagar categoria com lançamentos
 
 ### Passo 3: Categoria ponta a ponta ⏳
+- [x] `Categoria` (@Entity): id identity, nome/tipo, validação centralizada no método `atualizar` (chamado também pelo construtor)
+- [x] `CategoriaRepository` (extends JpaRepository<Categoria, Long>)
+- [x] `CategoriaService`: create, findById, getAll, update, delete
+- [ ] `CategoriaController` (@RestController) + DTOs (`dto/CategoriaRequest`, `dto/CategoriaResponse`) — entidade não pode sair do controller
+- Lembrar amanhã: `orElseThrow` desembrulha `Optional<T>` pra `T` — o método precisa retornar `T`, não `Optional<T>`
+- Padrão adotado: sem setters soltos na entidade — só `atualizar(nome, tipo)`, que valida e é reaproveitado pelo construtor
 ### Passo 4: Tratamento de erros
 ### Passo 5: Lançamentos + regras
 ### Passo 6: Relatório
