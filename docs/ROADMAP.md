@@ -5,7 +5,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 
 > **Retomando com IA:** "Leia `docs/GUIDE.md` e `docs/ROADMAP.md` e me ajude a continuar de onde parei."
 
-**Última atualização:** 16/09/2026, passo 3 concluído — CRUD de Categoria ponta a ponta funcionando. Próximo: passo 4 (tratamento de erros)
+**Última atualização:** 17/09/2026, passo 4 concluído — tratamento de erros da Categoria fechado (sem pendências). Próximo: passo 5 (Lançamentos + regras)
 
 ---
 
@@ -52,7 +52,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - [x] `CategoriaRepository.existsByNome` (query derivada do nome do método, sem corpo)
 - [x] `CategoriaService.create` checa duplicado e lança `CategoriaNomeDuplicadoException` antes de salvar; `findById` lança `CategoriaNaoEncontradaException` (cobre `update`/`delete` de graça, os dois chamam `findById`)
 - [x] Removido `CategoriaRepository.id(Long id)` — método sobrando, nome não batia com convenção de query do Spring Data (quebraria a subida da app)
-- Pendência: handler de validação hoje usa `getFieldError()` (só o primeiro erro) — trocar por `getFieldErrors()` + `.stream().map(...).collect(Collectors.joining(...))` pra devolver todos de uma vez
+- [x] Handler de validação trocado de `getFieldError()` (só o primeiro) pra `getFieldErrors().stream().map(FieldError::getDefaultMessage).collect(Collectors.joining(", "))` — devolve todas as mensagens de validação de uma vez
 - [x] `update` agora checa duplicado com `existsByNomeAndIdNot(nome, id)` — exclui a própria categoria da comparação, senão bloqueava atualizar mantendo o mesmo nome
 - `throw new X(...)` não precisa de `return`: interrompe o método e sobe a exceção, não devolve valor
 - `.orElseThrow()` é método de `Optional` — não existe em `Categoria`/`List`, só em quem já é `Optional<T>` (ex: `repository.findById(id)`)

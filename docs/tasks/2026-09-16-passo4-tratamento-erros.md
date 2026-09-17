@@ -8,7 +8,6 @@
 
 **Verificação:** revisão visual do `CategoriaService.java` e `CategoriaRepository.java` finais — sem problemas bloqueantes. Não executei build/testes (não pedido nesta sessão).
 
-**Pendências:**
-- Handler de validação usa `getFieldError()` (só primeiro erro) — trocar por `getFieldErrors()` + `Collectors.joining(...)` pra devolver todos de uma vez.
+**Pendências:** nenhuma. Handler de validação trocado de `getFieldError()` pra `getFieldErrors().stream().map(FieldError::getDefaultMessage).collect(Collectors.joining(", "))` (17/09/2026) — devolve todas as mensagens de validação, não só a primeira. Revisão também apontou e removeu um `Objects.requireNonNull(...)` desnecessário ao redor do resultado de `joining` (nunca retorna null).
 
 **Resolvido depois do registro inicial:** import não usado removido; `update` agora checa duplicado com `existsByNomeAndIdNot(nome, id)` (excluindo a própria categoria da comparação — a primeira tentativa com `existsByNome` bloqueava manter o mesmo nome no update).
