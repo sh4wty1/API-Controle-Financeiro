@@ -5,7 +5,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 
 > **Retomando com IA:** "Leia `docs/GUIDE.md` e `docs/ROADMAP.md` e me ajude a continuar de onde parei."
 
-**Última atualização:** 17/09/2026, passo 4 concluído — tratamento de erros da Categoria fechado (sem pendências). Próximo: passo 5 (Lançamentos + regras)
+**Última atualização:** 17/09/2026, passo 5 em andamento — `Lancamento` (entidade) e `LancamentoRepository` prontos. Próximo: `LancamentoService`
 
 ---
 
@@ -56,7 +56,18 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - [x] `update` agora checa duplicado com `existsByNomeAndIdNot(nome, id)` — exclui a própria categoria da comparação, senão bloqueava atualizar mantendo o mesmo nome
 - `throw new X(...)` não precisa de `return`: interrompe o método e sobe a exceção, não devolve valor
 - `.orElseThrow()` é método de `Optional` — não existe em `Categoria`/`List`, só em quem já é `Optional<T>` (ex: `repository.findById(id)`)
-### Passo 5: Lançamentos + regras
+### Passo 5: Lançamentos + regras (em andamento)
+- [x] `Lancamento` (@Entity): id identity, descricao/valor/data/categoria, validação centralizada no método `atualizar` (chamado também pelo construtor), sem setters soltos — mesmo padrão da `Categoria`
+- [x] `LancamentoRepository` (extends JpaRepository<Lancamento, Long>): `findByCategoriaIdAndDataBetween` e `findByDataBetween`, os dois com `Pageable`/`Page<Lancamento>`
+- [ ] `LancamentoService`
+- [ ] `LancamentoController` + DTOs (`LancamentoRequest`/`LancamentoResponse`)
+- Decisão: filtro por categoria na listagem é **opcional**, filtro por mês é **obrigatório** — às vezes quero ver todas as transações do período, não só de uma categoria. O service decide qual método do repository chamar dependendo se `categoriaId` veio na requisição
+- Decisão: toda transação sempre tem categoria (nunca `null`) — se não tiver uma específica, cadastro uma categoria "Outro"
+- `valor`: validação certa é `valor.compareTo(BigDecimal.ZERO) <= 0` pra garantir positivo — a primeira tentativa comparava `valor.toString().isBlank()`, que nunca disparava (um `BigDecimal` nunca gera string vazia, nem sendo zero ou negativo)
+- `data` é `LocalDate`, não `LocalDateTime` — a coluna no banco é `DATE` (migration `V1`), tipo incompatível quebraria a subida com `ddl-auto: validate`
+- Pegadinha de import: `Page` e `Pageable` têm homônimos em outros pacotes que o autocomplete sugere por engano — `org.hibernate.query.Page` (não tem generics, é só Hibernate puro) e `java.awt.print.Pageable` (impressão AWT, nada a ver com paginação de dados). Os certos são `org.springframework.data.domain.Page` e `org.springframework.data.domain.Pageable`
+- Pegadinha de query method: a ordem dos parâmetros do método tem que bater com a ordem das condições no **nome** (`findByXAndY` → 1º parâmetro é X, 2º é Y), não a ordem que parece mais natural de escrever
+
 ### Passo 6: Relatório
 ### Passo 7: Testes
 
