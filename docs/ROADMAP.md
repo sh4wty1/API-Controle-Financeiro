@@ -46,7 +46,16 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - Duas rotas `@GetMapping` sem path próprio colidem (`Ambiguous mapping` na subida) — `findById`/`update`/`delete` precisam de `/{id}` no mapping + `@PathVariable Long id` no parâmetro
 - `HttpStatus.FOUND` é 302 (redirecionamento), não "encontrado" — GET/PUT/DELETE que devolvem o recurso usam `HttpStatus.OK`
 - Campo injetado no controller deveria ser `private final`, não `public final` (encapsulamento)
-### Passo 4: Tratamento de erros
+### Passo 4: Tratamento de erros ✅
+- [x] `shared/CategoriaNaoEncontradaException` e `shared/CategoriaNomeDuplicadoException` (RuntimeException)
+- [x] `shared/GlobalExceptionHandler` (@RestControllerAdvice): 404 pra não encontrada, 409 pra nome duplicado, 400 pra `MethodArgumentNotValidException`
+- [x] `CategoriaRepository.existsByNome` (query derivada do nome do método, sem corpo)
+- [x] `CategoriaService.create` checa duplicado e lança `CategoriaNomeDuplicadoException` antes de salvar; `findById` lança `CategoriaNaoEncontradaException` (cobre `update`/`delete` de graça, os dois chamam `findById`)
+- [x] Removido `CategoriaRepository.id(Long id)` — método sobrando, nome não batia com convenção de query do Spring Data (quebraria a subida da app)
+- Pendência: handler de validação hoje usa `getFieldError()` (só o primeiro erro) — trocar por `getFieldErrors()` + `.stream().map(...).collect(Collectors.joining(...))` pra devolver todos de uma vez
+- [x] `update` agora checa duplicado com `existsByNomeAndIdNot(nome, id)` — exclui a própria categoria da comparação, senão bloqueava atualizar mantendo o mesmo nome
+- `throw new X(...)` não precisa de `return`: interrompe o método e sobe a exceção, não devolve valor
+- `.orElseThrow()` é método de `Optional` — não existe em `Categoria`/`List`, só em quem já é `Optional<T>` (ex: `repository.findById(id)`)
 ### Passo 5: Lançamentos + regras
 ### Passo 6: Relatório
 ### Passo 7: Testes
