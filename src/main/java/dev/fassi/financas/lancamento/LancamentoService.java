@@ -3,10 +3,12 @@ package dev.fassi.financas.lancamento;
 import dev.fassi.financas.categoria.Categoria;
 import dev.fassi.financas.categoria.CategoriaRepository;
 import dev.fassi.financas.shared.CategoriaNaoEncontradaException;
+import dev.fassi.financas.shared.LancamentoNaoEncontradoException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -23,13 +25,41 @@ public class LancamentoService {
     //POST
     public Lancamento create(String descricao, BigDecimal valor, LocalDate data, Long categoriaId) {
 
-        if (!categoriaRepository.existsById(categoriaId)) {
-            throw new CategoriaNaoEncontradaException("Nao existe uma categoria com esse nome");
-        }
+        Categoria categoria = categoriaRepository.findById(categoriaId)
+                .orElseThrow(() -> new CategoriaNaoEncontradaException("Categoria não encontrada"));
 
-        Categoria categoria = categoriaRepository.findById(categoriaId);
-
-        Lancamento lancamento = new Lancamento(descricao, valor, categoria, data);
+        Lancamento lancamento = new Lancamento(
+                descricao,
+                valor,
+                categoria,
+                data
+        );
         return lancamentoRepository.save(lancamento);
+    }
+
+    //GET
+    public Lancamento findById(Long id) {
+        return lancamentoRepository.findById(id)
+                .orElseThrow(() -> new LancamentoNaoEncontradoException("Lançamento não encontrado"));
+    }
+
+    public List<Lancamento> getAll() {
+        return lancamentoRepository.findAll();
+    }
+
+    //PUT
+    public Lancamento update(Long id, String descricao, Categoria categoria, BigDecimal valor, LocalDate data) {
+
+        Lancamento lancamento = findById(id);
+        lancamento.atualizar(descricao, valor, categoria, data);
+        return lancamentoRepository.save(lancamento);
+    }
+
+    //DELETE
+    public Lancamento delete(Long id) {
+
+        Lancamento lancamento = findById(id);
+        lancamentoRepository.delete(lancamento);
+        return lancamento;
     }
 }

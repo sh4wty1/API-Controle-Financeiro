@@ -5,7 +5,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 
 > **Retomando com IA:** "Leia `docs/GUIDE.md` e `docs/ROADMAP.md` e me ajude a continuar de onde parei."
 
-**Última atualização:** 17/09/2026, passo 5 em andamento — `Lancamento` (entidade) e `LancamentoRepository` prontos. Próximo: `LancamentoService`
+**Última atualização:** 17/09/2026, passo 5 em andamento — `LancamentoService` e DTOs (`LancamentoRequest`/`LancamentoResponse`) prontos. Próximo: `LancamentoController`
 
 ---
 
@@ -58,15 +58,21 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - `.orElseThrow()` é método de `Optional` — não existe em `Categoria`/`List`, só em quem já é `Optional<T>` (ex: `repository.findById(id)`)
 ### Passo 5: Lançamentos + regras (em andamento)
 - [x] `Lancamento` (@Entity): id identity, descricao/valor/data/categoria, validação centralizada no método `atualizar` (chamado também pelo construtor), sem setters soltos — mesmo padrão da `Categoria`
-- [x] `LancamentoRepository` (extends JpaRepository<Lancamento, Long>): `findByCategoriaIdAndDataBetween` e `findByDataBetween`, os dois com `Pageable`/`Page<Lancamento>`
-- [ ] `LancamentoService`
-- [ ] `LancamentoController` + DTOs (`LancamentoRequest`/`LancamentoResponse`)
+- [x] `LancamentoRepository` (extends JpaRepository<Lancamento, Long>): `findByCategoriaIdAndDataBetween` e `findByDataBetween`, os dois com `Pageable`/`Page<Lancamento>`; `existsByDescricaoAndIdNot` adicionada depois
+- [x] `LancamentoService`: `create`, `findById`, `getAll`, `update`, `delete` — mesmo padrão do `CategoriaService` (`findById` lança `LancamentoNaoEncontradoException` via `orElseThrow`, cobre `update`/`delete` de graça)
+- [x] `shared/LancamentoNaoEncontradoException` (RuntimeException) — falta registrar no `GlobalExceptionHandler` (hoje só trata `CategoriaNaoEncontradaException`/`CategoriaNomeDuplicadoException`)
+- [x] DTOs `lancamento/dto/LancamentoRequest` e `lancamento/dto/LancamentoResponse` — `categoriaId` (`Long`), não a entidade `Categoria` inteira (entidade não pode sair do controller, mesma regra da `Categoria`)
+- [ ] `LancamentoController` — só `create` por enquanto (é o único método do service testável ponta a ponta; `findAll`/`findById`/`update`/`delete` entram depois, junto do filtro por mês/categoria)
 - Decisão: filtro por categoria na listagem é **opcional**, filtro por mês é **obrigatório** — às vezes quero ver todas as transações do período, não só de uma categoria. O service decide qual método do repository chamar dependendo se `categoriaId` veio na requisição
 - Decisão: toda transação sempre tem categoria (nunca `null`) — se não tiver uma específica, cadastro uma categoria "Outro"
 - `valor`: validação certa é `valor.compareTo(BigDecimal.ZERO) <= 0` pra garantir positivo — a primeira tentativa comparava `valor.toString().isBlank()`, que nunca disparava (um `BigDecimal` nunca gera string vazia, nem sendo zero ou negativo)
 - `data` é `LocalDate`, não `LocalDateTime` — a coluna no banco é `DATE` (migration `V1`), tipo incompatível quebraria a subida com `ddl-auto: validate`
 - Pegadinha de import: `Page` e `Pageable` têm homônimos em outros pacotes que o autocomplete sugere por engano — `org.hibernate.query.Page` (não tem generics, é só Hibernate puro) e `java.awt.print.Pageable` (impressão AWT, nada a ver com paginação de dados). Os certos são `org.springframework.data.domain.Page` e `org.springframework.data.domain.Pageable`
 - Pegadinha de query method: a ordem dos parâmetros do método tem que bater com a ordem das condições no **nome** (`findByXAndY` → 1º parâmetro é X, 2º é Y), não a ordem que parece mais natural de escrever
+- `JpaRepository.findById` sempre devolve `Optional<T>`, nunca `T` direto — mesma pegadinha do `orElseThrow` do Passo 3, mas agora no `LancamentoService.create` (precisava desembrulhar o `Optional<Categoria>` antes de passar pro construtor de `Lancamento`, que pede `Categoria`)
+- `throw` é **statement**, não **expression**, em Java — não dá pra usar num ternário (`cond ? valor : throw new X()` não compila). É por isso que `Optional.orElseThrow(() -> new X())` existe: o `if/else` que decide lançar ou não fica escondido na implementação do `Optional`, e o lambda só *produz* a exceção, não lança sozinho
+- DTO não pode carregar a entidade inteira: primeira versão de `LancamentoRequest`/`LancamentoResponse` guardava `Categoria categoria` em vez de `Long categoriaId` — quebrava a regra "entidade não sai do controller" e não batia com a assinatura de `LancamentoService.create` (que pede `Long categoriaId`)
+- Construtor extra de um record (ex: `LancamentoResponse(Lancamento lancamento)`) não dá acesso aos nomes dos componentes como variável — só o construtor canônico (gerado a partir da lista de componentes) tem isso. Dentro do construtor extra, o único parâmetro que existe é o que você declarou nele
 
 ### Passo 6: Relatório
 ### Passo 7: Testes

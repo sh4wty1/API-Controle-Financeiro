@@ -7,7 +7,10 @@ import org.springframework.data.domain.Pageable;
 import java.time.LocalDate;
 
 public interface LancamentoRepository extends JpaRepository<Lancamento, Long> {
+
     Page<Lancamento> findByCategoriaIdAndDataBetween(Long categoriaId, LocalDate initialData, LocalDate finalData, Pageable pageable);
 
     Page<Lancamento> findByDataBetween(LocalDate initialData, LocalDate finalData, Pageable pageable);
+
+    boolean existsByDescricaoAndIdNot(String descricao, Long id);
 }
