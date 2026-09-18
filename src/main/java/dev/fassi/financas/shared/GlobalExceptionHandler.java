@@ -6,8 +6,6 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -33,5 +31,10 @@ public class GlobalExceptionHandler {
                         .map(FieldError::getDefaultMessage)
         .collect(Collectors.joining(", "))
         );
+    }
+
+    @ExceptionHandler(LancamentoNaoEncontradoException.class)
+    public ResponseEntity<String> handleLancamentoNaoEncontradoException(LancamentoNaoEncontradoException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception.getMessage());
     }
 }
