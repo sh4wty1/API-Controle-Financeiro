@@ -5,7 +5,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 
 > **Retomando com IA:** "Leia `docs/GUIDE.md` e `docs/ROADMAP.md` e me ajude a continuar de onde parei."
 
-**Última atualização:** 18/09/2026, passo 5 com o código todo pronto — listagem filtrada por mês (`categoriaId` opcional + `Pageable`), 404 no handler, 201 no POST, `@Transactional` nos `update`. Falta só o **teste manual** com o banco no ar (nada foi rodado nem compilado desde essas mudanças). Próximo: Passo 6 (relatório)
+**Última atualização:** 18/09/2026, passo 5 fechado e testado contra o banco real (Postgres na VPS, por túnel SSH) com `static/index.html`, um console de teste da API. O teste achou 2 buracos que devolvem 500 (ver Passo 5). Próximo: corrigir esses 500 no `GlobalExceptionHandler` e Passo 6 (relatório). Front de verdade adiado (ver Passo 8)
 
 ---
 
@@ -56,7 +56,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - [x] `update` agora checa duplicado com `existsByNomeAndIdNot(nome, id)` — exclui a própria categoria da comparação, senão bloqueava atualizar mantendo o mesmo nome
 - `throw new X(...)` não precisa de `return`: interrompe o método e sobe a exceção, não devolve valor
 - `.orElseThrow()` é método de `Optional` — não existe em `Categoria`/`List`, só em quem já é `Optional<T>` (ex: `repository.findById(id)`)
-### Passo 5: Lançamentos + regras (código pronto, falta teste manual)
+### Passo 5: Lançamentos + regras ✅ (testado; falta tratar 2 erros, abaixo)
 - [x] `Lancamento` (@Entity): id identity, descricao/valor/data/categoria, validação centralizada no método `atualizar` (chamado também pelo construtor), sem setters soltos — mesmo padrão da `Categoria`
 - [x] `LancamentoRepository` (extends JpaRepository<Lancamento, Long>): `findByCategoriaIdAndDataBetween` e `findByDataBetween`, os dois com `Pageable`/`Page<Lancamento>`, ambos chamados pelo `filterByMonth` do service. `existsByDescricaoAndIdNot` removida (dois lançamentos com a mesma descrição são válidos)
 - [x] `LancamentoService`: `create`, `findById`, `getAll`, `filterByMonth`, `update`, `delete` — mesmo padrão do `CategoriaService` (`findById` lança `LancamentoNaoEncontradoException` via `orElseThrow`, cobre `update`/`delete` de graça). `resolverCategoria` privado compartilhado por `create` e `update`
@@ -66,7 +66,13 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - [x] POST devolve `CREATED`; `update` recebe `categoriaId` e o service resolve a `Categoria` (sem `CategoriaService` no controller)
 - [x] `@Transactional` no `update` de `LancamentoService` e `CategoriaService`, `save()` removido dos dois
 - [x] Limpezas: `findALL` → `findAll`, `/{id}` em todos os mappings
-- [ ] **Teste manual** com o banco no ar: `GET /lancamentos?mes=2026-09` com e sem `categoriaId`, `page`/`size`/`sort`, 404 de lançamento inexistente, 201 no POST. Se o `mes` der 400 de conversão → `@DateTimeFormat(pattern = "yyyy-MM")` no parâmetro
+- [x] **Teste manual** contra o banco real (18/09, via `curl` e pela página `static/index.html`): todas as rotas OK — 201 nos POST, filtro de mês com e sem `categoriaId`, `page`/`size`/`sort`, mês sem dados e `categoriaId` inexistente devolvem 200, 404 nos inexistentes, 409 em nome duplicado, `PUT` com o mesmo nome passa. `mes` no formato `yyyy-MM` converteu sem `@DateTimeFormat`
+- [ ] `valor <= 0` (e qualquer `IllegalArgumentException` da entidade) devolve **500**: não tem handler. Deveria ser 400 → `@ExceptionHandler(IllegalArgumentException.class)` no `GlobalExceptionHandler`
+- [ ] `DELETE /categorias/{id}` com lançamentos devolve **500** (a FK `lancamento_categoria_id_fkey` barra, mas o erro não é tratado). Deveria ser 409 (regra do GUIDE: "categoria com lançamentos não pode ser apagada"). Duas saídas: tratar `DataIntegrityViolationException` no handler, ou checar no service antes de apagar
+- [ ] Mensagens de validação saem em inglês (`must not be blank`): `message = "..."` nas anotações dos DTOs
+- [ ] Aviso no log `Serializing PageImpl instances as-is is not supported`: decidir entre `PagedModel` e `@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)`. O JSON atual do `Page` traz `content`, `totalElements`, `totalPages`, `number`, `size`, `first`, `last`, `empty`, `pageable`, `sort`
+- Exceção sem `@ExceptionHandler` vira 500 com o JSON padrão do Spring (`timestamp`, `status`, `error`, `path`), sem mensagem útil; `mes=abc` cai no mesmo formato, com 400
+- Estado do banco da VPS depois do teste: categoria 1 "Salário" e lançamento 1 "Mercado (editado)" (dados de teste)
 - Decisão: filtro por categoria na listagem é **opcional**, filtro por mês é **obrigatório** (`YearMonth`, não datas soltas — intervalo sempre válido, sem validar `inicio <= fim`). O service decide qual método do repository chamar dependendo se `categoriaId` veio na requisição
 - Decisão: `GET /lancamentos` sem filtro **continua existindo** ao lado do filtrado por mês; o Spring roteia pelo parâmetro `mes` (`params = "mes"`)
 - `categoriaId` inexistente no filtro devolve página vazia com 200, não 404 — filtrar por algo que não existe é resposta vazia válida (não chama `resolverCategoria` no filtro)
@@ -86,12 +92,21 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - Construtor extra de um record (ex: `LancamentoResponse(Lancamento lancamento)`) não dá acesso aos nomes dos componentes como variável — só o construtor canônico (gerado a partir da lista de componentes) tem isso. Dentro do construtor extra, o único parâmetro que existe é o que você declarou nele
 
 ### Passo 6: Relatório
+- Endpoint `GET /relatorios/mensal?ano=2026&mes=9`: total de receitas, total de despesas, saldo e total por categoria (pacote `relatorio/`)
+- Agregação no banco: `@Query` com JPQL e `SUM`/`GROUP BY` no repository (query method derivado não agrega). JPQL usa entidade e campo (`l.categoria.tipo`), não tabela e coluna
+- O tipo (receita/despesa) vem da categoria, `Lancamento` não tem `tipo`: dá pra fazer uma query agrupada por categoria e somar no service, ou duas queries. Decisão minha
+- Projeção em record: *constructor expression* (`select new ...`, com o nome completo do pacote do record)
+- `SUM` devolve `null` quando não há linhas: tratar como `BigDecimal.ZERO`. Saldo = receitas menos despesas com `.subtract(...)`
+- Intervalo do mês: `YearMonth.of(ano, mes)` + `atDay(1)`/`atEndOfMonth()`, como no `filterByMonth`. `mes=13` lança `DateTimeException`: validar ou tratar no handler
+- Mês sem dados: 200 com zeros e lista vazia, não 404 (mesma lógica do `categoriaId` inexistente no filtro)
+- Ordem sugerida: record de resposta, `@Query`, service, controller
 ### Passo 7: Testes
 
-### Passo 8: Front básico
-- HTML + JS puro (`fetch`) em `src/main/resources/static/`, servido pelo próprio Spring em `localhost:8080`
-- Mesma origem da API, então não tem CORS
-- Pode começar antes, assim que o CRUD de categoria existir, pra visualizar a API
+### Passo 8: Front (adiado)
+- `src/main/resources/static/index.html` já existe, mas é só um **console de teste da API**, gerado pela IA por liberação minha (ver `docs/tasks/2026-09-18-static-teste-api.md`), não o front de verdade. Servido pelo Spring em `localhost:8080`, mesma origem, sem CORS
+- Front de verdade: projeto separado, Bun + Vite + React + TypeScript. Briefing pra sessão dele em [frontend-briefing.md](frontend-briefing.md) (copiar como `CLAUDE.md` na raiz do projeto novo). Front separado traz o CORS de volta: resolver com proxy do Vite, prefixo `/api`
+- Depois: talvez um projeto com web e app juntos. A API é a mesma pra qualquer cliente
+- Antes de qualquer front em produção falta autenticação (Spring Security), fora da v1
 
 ---
 
@@ -102,10 +117,11 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 | IntelliJ com keymap padrão | Aprender os atalhos nativos |
 | Autocomplete de IA desligado (Full Line / AI Assistant) | Regra do GUIDE: IA não escreve código. Code completion normal (`Ctrl+Space`) fica ligado |
 | Banco via Docker **no PC de casa** | PC do trabalho: licença do Docker Desktop + política de TI |
-| Front estático em `static/` | Sem Node/build, sem CORS. Isso muda o "Fora da v1: front" do GUIDE |
+| Banco de dev na VPS (container `financas-db-db-1`), por túnel SSH | Em 18/09, nesta máquina Linux não há Docker. A porta 5432 da VPS é de outro projeto: o túnel aponta pra 5433. Senha só no compose da VPS, via `SPRING_DATASOURCE_PASSWORD` |
+| Front de verdade em projeto separado (Bun + Vite + React + TS), **adiado** | Mercado. `static/index.html` fica só como console de teste da API. O GUIDE segue com "Fora da v1: front" |
 | Manter blocos vazios do `pom.xml` (`<licenses/>` etc.) | Evitam herdar licença/devs do parent (ver HELP.md) |
 
-Alternativas pro banco se não der Docker: VPS com Postgres acessado por túnel SSH (`ssh -N -L 5432:localhost:5432 user@vps`, porta presa em `127.0.0.1` na VPS), Neon/Supabase, ou H2.
+Banco na VPS (adotado em 18/09): container `financas-db-db-1` em `127.0.0.1:5433` da VPS, compose em `/opt/financas-db/docker-compose.yml`, túnel `ssh -N -L 5432:127.0.0.1:5433 fassi-vps` (o exemplo antigo com `5432:localhost:5432` cairia no banco de outro projeto). Outras alternativas: Neon/Supabase, ou H2.
 
 ---
 
@@ -120,6 +136,8 @@ Alternativas pro banco se não der Docker: VPS com Postgres acessado por túnel 
 
 ## Pegadinhas que já aprendi
 
+- **Editar `static/` e não ver mudança**: o Spring serve de `target/classes`, não de `src/`. `Ctrl+F9` (Build) no IntelliJ ou `./mvnw process-resources`, depois F5 no navegador
+- **Subir a app com o banco da VPS**: abrir o túnel (`ssh -N -L 5432:127.0.0.1:5433 fassi-vps`) e passar `SPRING_DATASOURCE_PASSWORD` na run configuration do IntelliJ. Nunca a senha no `application.yaml`, ele é commitado. Se a 8080 estiver ocupada, tem outra instância da app rodando
 - **Pacote com hífen quebra tudo**: pasta = pacote, e hífen é inválido. Sintoma: `New → Java Class` some do menu
 - **Atalhos não funcionam com foco no terminal**: `Esc` volta pro editor. Settings → Tools → Terminal → desmarcar "Override IDE shortcuts"
 - **`Shift Shift`**: busca qualquer ação e mostra o atalho dela

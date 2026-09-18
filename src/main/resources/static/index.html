@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Teste da API</title>
+<style>
+  :root {
+    color-scheme: dark;               /* deixa select, scrollbar e campos nativos escuros */
+    --fundo: #14161a;
+    --painel: #1e2127;
+    --borda: #343a44;
+    --texto: #e6e8eb;
+    --suave: #9aa3af;
+    --destaque: #5b9dff;
+    --ok: #4ade80;
+    --erro: #f87171;
+  }
+
+  body {
+    background: var(--fundo);
+    color: var(--texto);
+    font: 15px/1.5 system-ui, sans-serif;
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+  h1 { font-size: 1.4rem; }
+  h3 { margin: 1.25rem 0 .5rem; font-size: 1.6rem; }
+
+  button, select, input, textarea {
+    background: var(--painel);
+    color: var(--texto);
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    padding: .45rem .7rem;
+    font: inherit;
+  }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--destaque); }
+  :is(button, select, input, textarea):focus-visible { outline: 2px solid var(--destaque); outline-offset: 1px; }
+
+  #atalhos { margin-bottom: 1rem; }
+  .grupo { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+  .grupo b { width: 9rem; font-weight: 500; font-size: .85rem; color: var(--suave); }
+  .grupo button { font-size: .85rem; }
+
+  .linha { display: flex; gap: .5rem; margin-bottom: .5rem; }
+  #caminho { flex: 1; font-family: ui-monospace, monospace; }
+  #enviar { background: var(--destaque); border-color: var(--destaque); color: #0b1220; font-weight: 600; }
+
+  textarea { width: 100%; box-sizing: border-box; height: 8rem; font-family: ui-monospace, monospace; resize: vertical; }
+  pre {
+    background: var(--painel);
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    padding: 1rem;
+    min-height: 6rem;
+    overflow: auto;
+    white-space: pre-wrap;            /* quebra linha longa em vez de estourar a tela */
+  }
+  .ok { color: var(--ok); }
+  .erro { color: var(--erro); }
+</style>
+</head>
+<body>
+
+<h1>Teste da API</h1>
+
+<!-- um botão por atalho; clicar só preenche os campos abaixo, quem envia é o botão "Enviar" -->
+<div id="atalhos"></div>
+
+<div class="linha">
+  <select id="metodo">
+    <option>GET</option>
+    <option>POST</option>
+    <option>PUT</option>
+    <option>DELETE</option>
+  </select>
+  <input id="caminho" value="/categorias">
+  <button id="enviar">Enviar</button>
+</div>
+
+<textarea id="corpo" placeholder="corpo JSON (POST e PUT)"></textarea>
+
+<h3 id="codigo"></h3>
+<pre id="resposta"></pre>
+
+<script>
+// Cada atalho é só {método, caminho, corpo}. Pra testar outra rota, edite os campos na mão.
+// Os "1" e "999999" nos caminhos são ids: crie a categoria 1 e o lançamento 1 antes, ou ajuste o id.
+const corpoLancamento = { descricao: 'Mercado', valor: 150.5, categoriaId: 1, data: '2026-09-18' };
+const corpoCategoria  = { nome: 'Salário', tipo: 'RECEITA' };
+
+const grupos = {
+  'Categorias': [
+    { nome: 'Listar',   metodo: 'GET',    caminho: '/categorias' },
+    { nome: 'Buscar 1', metodo: 'GET',    caminho: '/categorias/1' },
+    { nome: 'Criar',    metodo: 'POST',   caminho: '/categorias',   corpo: corpoCategoria },
+    { nome: 'Editar 1', metodo: 'PUT',    caminho: '/categorias/1', corpo: corpoCategoria },
+    { nome: 'Apagar 1', metodo: 'DELETE', caminho: '/categorias/1' },
+  ],
+  'Lançamentos': [
+    { nome: 'Listar (sem filtro)', metodo: 'GET', caminho: '/lancamentos' },
+    { nome: 'Buscar 1',            metodo: 'GET', caminho: '/lancamentos/1' },
+    { nome: 'Do mês',              metodo: 'GET', caminho: '/lancamentos?mes=2026-09' },
+    { nome: 'Mês + categoria + página', metodo: 'GET',
+      caminho: '/lancamentos?mes=2026-09&categoriaId=1&page=0&size=5&sort=data,desc' },
+    { nome: 'Criar',    metodo: 'POST',   caminho: '/lancamentos',   corpo: corpoLancamento },
+    { nome: 'Editar 1', metodo: 'PUT',    caminho: '/lancamentos/1',
+      corpo: { ...corpoLancamento, descricao: 'Mercado (editado)', valor: 200 } },
+    { nome: 'Apagar 1', metodo: 'DELETE', caminho: '/lancamentos/1' },
+  ],
+  'Erros esperados': [
+    { nome: 'Categoria inexistente (404)',  metodo: 'GET',  caminho: '/categorias/999999' },
+    { nome: 'Lançamento inexistente (404)', metodo: 'GET',  caminho: '/lancamentos/999999' },
+    { nome: 'Nome duplicado (409)',         metodo: 'POST', caminho: '/categorias', corpo: corpoCategoria },
+    { nome: 'Nome vazio (400)',             metodo: 'POST', caminho: '/categorias', corpo: { ...corpoCategoria, nome: '' } },
+    { nome: 'Mês inválido (400)',           metodo: 'GET',  caminho: '/lancamentos?mes=abc' },
+    { nome: 'Valor negativo',               metodo: 'POST', caminho: '/lancamentos', corpo: { ...corpoLancamento, valor: -1 } },
+    { nome: 'Apagar categoria em uso',      metodo: 'DELETE', caminho: '/categorias/1' },
+  ],
+};
+
+for (const [titulo, atalhos] of Object.entries(grupos)) {
+  const grupo = document.createElement('div');
+  grupo.className = 'grupo';
+  grupo.innerHTML = `<b>${titulo}</b>`;      // innerHTML só aqui: o título é fixo, não vem do usuário nem da API
+
+  for (const a of atalhos) {
+    const botao = document.createElement('button');
+    botao.textContent = a.nome;
+    botao.onclick = () => {
+      metodo.value = a.metodo;
+      caminho.value = a.caminho;
+      corpo.value = a.corpo ? JSON.stringify(a.corpo, null, 2) : '';
+    };
+    grupo.append(botao);
+  }
+  document.getElementById('atalhos').append(grupo);
+}
+
+// Se a resposta for JSON, indenta; se for texto puro (as mensagens de erro da API), mostra como veio.
+function formatar(texto) {
+  try { return JSON.stringify(JSON.parse(texto), null, 2); }
+  catch { return texto; }
+}
+
+enviar.onclick = async () => {
+  const opcoes = { method: metodo.value };
+
+  // GET não aceita corpo (o fetch lança erro). Sem o header abaixo o Spring responde 415.
+  if (metodo.value !== 'GET' && corpo.value.trim()) {
+    opcoes.headers = { 'Content-Type': 'application/json' };
+    opcoes.body = corpo.value;
+  }
+
+  try {
+    const r = await fetch(caminho.value, opcoes);
+    codigo.textContent = r.status;                 // 404/409/500 NÃO caem no catch: o fetch só rejeita se a API nem respondeu
+    codigo.className = r.ok ? 'ok' : 'erro';       // r.ok = status 200-299
+    resposta.textContent = formatar(await r.text());
+  } catch (e) {
+    codigo.textContent = 'sem resposta (a API está no ar?)';
+    codigo.className = 'erro';
+    resposta.textContent = e.message;
+  }
+};
+</script>
+</body>
+</html>
