@@ -49,6 +49,8 @@ public class CategoriaController {
         return ResponseEntity.status(HttpStatus.OK).body(dtoResponse);
     }
 
+    //ROTA PUT
+
     @PutMapping("/{id}")
     public ResponseEntity<CategoriaResponse> update(@PathVariable Long id, @RequestBody @Valid CategoriaRequest categoriaRequest) {
         Categoria response = categoriaService.update(id, categoriaRequest.nome(), categoriaRequest.tipo());
@@ -56,6 +58,8 @@ public class CategoriaController {
 
         return ResponseEntity.status(HttpStatus.OK).body(dtoResponse);
     }
+
+    // ROTA DELETE
 
     @DeleteMapping("/{id}")
     public ResponseEntity<CategoriaResponse> delete(@PathVariable Long id) {

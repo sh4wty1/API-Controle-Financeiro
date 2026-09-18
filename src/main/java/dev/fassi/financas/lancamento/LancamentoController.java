@@ -1,4 +1,81 @@
 package dev.fassi.financas.lancamento;
 
+import dev.fassi.financas.categoria.Categoria;
+import dev.fassi.financas.categoria.CategoriaService;
+import dev.fassi.financas.lancamento.dto.LancamentoRequest;
+import dev.fassi.financas.lancamento.dto.LancamentoResponse;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@RestController
+@RequestMapping("lancamentos")
 public class LancamentoController {
+
+    private final LancamentoService lancamentoService;
+    private final CategoriaService categoriaService;
+
+    public LancamentoController(LancamentoService lancamentoService, CategoriaService categoriaService) {
+        this.lancamentoService = lancamentoService;
+        this.categoriaService = categoriaService;
+    }
+
+    // ROTA POST
+    @PostMapping
+    public ResponseEntity<LancamentoResponse> create(@RequestBody @Valid LancamentoRequest lancamentoRequest) {
+        Lancamento response = lancamentoService.create(
+                lancamentoRequest.descricao(),
+                lancamentoRequest.valor(),
+                lancamentoRequest.data(),
+                lancamentoRequest.categoriaId()
+        );
+
+        LancamentoResponse dtoResponse = new LancamentoResponse(response);
+        return ResponseEntity.status(HttpStatus.OK).body(dtoResponse);
+    }
+
+    // ROTA GET
+    @GetMapping
+    public ResponseEntity<List<LancamentoResponse>> findALL() {
+        List<Lancamento> response = lancamentoService.getAll();
+        List<LancamentoResponse> responseList = new ArrayList<>();
+        for (Lancamento lancamento : response) {
+            LancamentoResponse dtoResponse = new LancamentoResponse(lancamento);
+            responseList.add(dtoResponse);
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body(responseList);
+    }
+
+    @GetMapping("{id}")
+    public ResponseEntity<LancamentoResponse> findById(@PathVariable Long id) {
+        Lancamento response = lancamentoService.findById(id);
+        LancamentoResponse dtoResponse = new LancamentoResponse(response);
+
+        return ResponseEntity.status(HttpStatus.OK).body(dtoResponse);
+    }
+
+    // ROTA PUT
+
+    @PutMapping("/{id}")
+    public ResponseEntity<LancamentoResponse> update(@PathVariable Long id, @RequestBody @Valid LancamentoRequest lancamentoRequest) {
+        Categoria categoria = categoriaService.findById(lancamentoRequest.categoriaId());
+        Lancamento response = lancamentoService.update(id, lancamentoRequest.descricao(), categoria, lancamentoRequest.valor(), lancamentoRequest.data());
+        LancamentoResponse dtoResponse = new LancamentoResponse(response);
+
+        return ResponseEntity.status(HttpStatus.OK).body(dtoResponse);
+    }
+
+    // ROTA DELETE
+    @DeleteMapping("{id}")
+    public ResponseEntity<LancamentoResponse> delete(@PathVariable Long id) {
+        Lancamento response = lancamentoService.delete(id);
+        LancamentoResponse dtoResponse = new LancamentoResponse(response);
+
+        return ResponseEntity.status(HttpStatus.OK).body(dtoResponse);
+    }
 }
