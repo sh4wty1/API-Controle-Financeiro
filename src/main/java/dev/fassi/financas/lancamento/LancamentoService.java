@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class LancamentoService {
@@ -22,16 +21,18 @@ public class LancamentoService {
         this.categoriaRepository = categoriaRepository;
     }
 
+    private Categoria resolverCategoria(Long categoriaId) {
+        return categoriaRepository.findById(categoriaId)
+                .orElseThrow(() -> new CategoriaNaoEncontradaException("Categoria não encontrada"));
+    }
+
     //POST
     public Lancamento create(String descricao, BigDecimal valor, LocalDate data, Long categoriaId) {
-
-        Categoria categoria = categoriaRepository.findById(categoriaId)
-                .orElseThrow(() -> new CategoriaNaoEncontradaException("Categoria não encontrada"));
 
         Lancamento lancamento = new Lancamento(
                 descricao,
                 valor,
-                categoria,
+                resolverCategoria(categoriaId),
                 data
         );
         return lancamentoRepository.save(lancamento);
@@ -48,10 +49,10 @@ public class LancamentoService {
     }
 
     //PUT
-    public Lancamento update(Long id, String descricao, Categoria categoria, BigDecimal valor, LocalDate data) {
-
+    public Lancamento update(Long id, String descricao, Long categoriaId, BigDecimal valor, LocalDate data) {
         Lancamento lancamento = findById(id);
-        lancamento.atualizar(descricao, valor, categoria, data);
+
+        lancamento.atualizar(descricao, valor, resolverCategoria(categoriaId), data);
         return lancamentoRepository.save(lancamento);
     }
 

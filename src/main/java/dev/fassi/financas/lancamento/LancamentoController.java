@@ -1,14 +1,11 @@
 package dev.fassi.financas.lancamento;
 
-import dev.fassi.financas.categoria.Categoria;
-import dev.fassi.financas.categoria.CategoriaService;
 import dev.fassi.financas.lancamento.dto.LancamentoRequest;
 import dev.fassi.financas.lancamento.dto.LancamentoResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,11 +14,9 @@ import java.util.List;
 public class LancamentoController {
 
     private final LancamentoService lancamentoService;
-    private final CategoriaService categoriaService;
 
-    public LancamentoController(LancamentoService lancamentoService, CategoriaService categoriaService) {
+    public LancamentoController(LancamentoService lancamentoService) {
         this.lancamentoService = lancamentoService;
-        this.categoriaService = categoriaService;
     }
 
     // ROTA POST
@@ -35,7 +30,7 @@ public class LancamentoController {
         );
 
         LancamentoResponse dtoResponse = new LancamentoResponse(response);
-        return ResponseEntity.status(HttpStatus.OK).body(dtoResponse);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dtoResponse);
     }
 
     // ROTA GET
@@ -63,8 +58,7 @@ public class LancamentoController {
 
     @PutMapping("/{id}")
     public ResponseEntity<LancamentoResponse> update(@PathVariable Long id, @RequestBody @Valid LancamentoRequest lancamentoRequest) {
-        Categoria categoria = categoriaService.findById(lancamentoRequest.categoriaId());
-        Lancamento response = lancamentoService.update(id, lancamentoRequest.descricao(), categoria, lancamentoRequest.valor(), lancamentoRequest.data());
+        Lancamento response = lancamentoService.update(id, lancamentoRequest.descricao(), lancamentoRequest.categoriaId(), lancamentoRequest.valor(), lancamentoRequest.data());
         LancamentoResponse dtoResponse = new LancamentoResponse(response);
 
         return ResponseEntity.status(HttpStatus.OK).body(dtoResponse);
