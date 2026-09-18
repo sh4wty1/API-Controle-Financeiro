@@ -3,6 +3,7 @@ package dev.fassi.financas.categoria;
 import dev.fassi.financas.shared.CategoriaNaoEncontradaException;
 import dev.fassi.financas.shared.CategoriaNomeDuplicadoException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -36,6 +37,7 @@ public class CategoriaService {
     }
 
     // PUT
+    @Transactional
     public Categoria update(Long id, String nome, TipoCategoria tipo) {
         if (repository.existsByNomeAndIdNot(nome, id)) {
             throw new CategoriaNomeDuplicadoException("Ja existe uma categoria com esse nome");
@@ -43,7 +45,7 @@ public class CategoriaService {
 
         Categoria categoria = findById(id);
         categoria.atualizar(nome, tipo);
-        return repository.save(categoria);
+        return categoria;
     }
 
     // DELETE

@@ -3,9 +3,13 @@ package dev.fassi.financas.lancamento;
 import dev.fassi.financas.lancamento.dto.LancamentoRequest;
 import dev.fassi.financas.lancamento.dto.LancamentoResponse;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,7 +39,7 @@ public class LancamentoController {
 
     // ROTA GET
     @GetMapping
-    public ResponseEntity<List<LancamentoResponse>> findALL() {
+    public ResponseEntity<List<LancamentoResponse>> findAll() {
         List<Lancamento> response = lancamentoService.getAll();
         List<LancamentoResponse> responseList = new ArrayList<>();
         for (Lancamento lancamento : response) {
@@ -46,12 +50,23 @@ public class LancamentoController {
         return ResponseEntity.status(HttpStatus.OK).body(responseList);
     }
 
-    @GetMapping("{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<LancamentoResponse> findById(@PathVariable Long id) {
         Lancamento response = lancamentoService.findById(id);
         LancamentoResponse dtoResponse = new LancamentoResponse(response);
 
         return ResponseEntity.status(HttpStatus.OK).body(dtoResponse);
+    }
+
+    // GET com filtro de mês
+    @GetMapping(params = "mes")
+    public ResponseEntity<Page<LancamentoResponse>> filterByMonth(
+            @RequestParam YearMonth mes,
+            @RequestParam(required = false) Long categoriaId,
+            Pageable pageable
+    ) {
+        Page<LancamentoResponse> response = lancamentoService.filterByMonth(mes, categoriaId, pageable).map(LancamentoResponse::new);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     // ROTA PUT
@@ -65,7 +80,7 @@ public class LancamentoController {
     }
 
     // ROTA DELETE
-    @DeleteMapping("{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<LancamentoResponse> delete(@PathVariable Long id) {
         Lancamento response = lancamentoService.delete(id);
         LancamentoResponse dtoResponse = new LancamentoResponse(response);

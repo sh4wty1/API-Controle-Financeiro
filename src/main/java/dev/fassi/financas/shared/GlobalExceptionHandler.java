@@ -35,6 +35,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(LancamentoNaoEncontradoException.class)
     public ResponseEntity<String> handleLancamentoNaoEncontradoException(LancamentoNaoEncontradoException exception) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
     }
 }

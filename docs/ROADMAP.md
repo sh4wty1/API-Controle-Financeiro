@@ -5,7 +5,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 
 > **Retomando com IA:** "Leia `docs/GUIDE.md` e `docs/ROADMAP.md` e me ajude a continuar de onde parei."
 
-**Última atualização:** 17/09/2026, passo 5 em andamento — `update` do `LancamentoController`/`LancamentoService` corrigido (resolve `categoriaId` no service, sem `CategoriaService` no controller), 201 do POST confirmado. Restam duas pendências reais: **listagem com mês obrigatório + `categoriaId` opcional + `Pageable`** e **`@Transactional` no `update`** — mais o 404 do `handleLancamentoNaoEncontradoException` que ainda não foi corrigido de verdade
+**Última atualização:** 18/09/2026, passo 5 com o código todo pronto — listagem filtrada por mês (`categoriaId` opcional + `Pageable`), 404 no handler, 201 no POST, `@Transactional` nos `update`. Falta só o **teste manual** com o banco no ar (nada foi rodado nem compilado desde essas mudanças). Próximo: Passo 6 (relatório)
 
 ---
 
@@ -56,23 +56,25 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - [x] `update` agora checa duplicado com `existsByNomeAndIdNot(nome, id)` — exclui a própria categoria da comparação, senão bloqueava atualizar mantendo o mesmo nome
 - `throw new X(...)` não precisa de `return`: interrompe o método e sobe a exceção, não devolve valor
 - `.orElseThrow()` é método de `Optional` — não existe em `Categoria`/`List`, só em quem já é `Optional<T>` (ex: `repository.findById(id)`)
-### Passo 5: Lançamentos + regras (em andamento)
+### Passo 5: Lançamentos + regras (código pronto, falta teste manual)
 - [x] `Lancamento` (@Entity): id identity, descricao/valor/data/categoria, validação centralizada no método `atualizar` (chamado também pelo construtor), sem setters soltos — mesmo padrão da `Categoria`
-- [x] `LancamentoRepository` (extends JpaRepository<Lancamento, Long>): `findByCategoriaIdAndDataBetween` e `findByDataBetween`, os dois com `Pageable`/`Page<Lancamento>`; `existsByDescricaoAndIdNot` adicionada depois
-- [x] `LancamentoService`: `create`, `findById`, `getAll`, `update`, `delete` — mesmo padrão do `CategoriaService` (`findById` lança `LancamentoNaoEncontradoException` via `orElseThrow`, cobre `update`/`delete` de graça)
-- [x] `shared/LancamentoNaoEncontradoException` (RuntimeException) — registrada no `GlobalExceptionHandler`, mas devolvendo `BAD_REQUEST`: recurso inexistente é 404, não 400 (ver checklist abaixo)
+- [x] `LancamentoRepository` (extends JpaRepository<Lancamento, Long>): `findByCategoriaIdAndDataBetween` e `findByDataBetween`, os dois com `Pageable`/`Page<Lancamento>`, ambos chamados pelo `filterByMonth` do service. `existsByDescricaoAndIdNot` removida (dois lançamentos com a mesma descrição são válidos)
+- [x] `LancamentoService`: `create`, `findById`, `getAll`, `filterByMonth`, `update`, `delete` — mesmo padrão do `CategoriaService` (`findById` lança `LancamentoNaoEncontradoException` via `orElseThrow`, cobre `update`/`delete` de graça). `resolverCategoria` privado compartilhado por `create` e `update`
+- [x] `shared/LancamentoNaoEncontradoException` (RuntimeException) — registrada no `GlobalExceptionHandler` devolvendo `NOT_FOUND`
 - [x] DTOs `lancamento/dto/LancamentoRequest` e `lancamento/dto/LancamentoResponse` — `categoriaId` (`Long`), não a entidade `Categoria` inteira (entidade não pode sair do controller, mesma regra da `Categoria`)
-- [x] `LancamentoController` — CRUD completo (`create`/`findALL`/`findById`/`update`/`delete`), commit `6c7da06`
-
-**Falta pra fechar o Passo 5** (revisão de 17/09, detalhes em `docs/tasks/2026-09-17-passo5-lancamento-controller-review.md`):
-- [ ] `handleLancamentoNaoEncontradoException` ainda devolve `BAD_REQUEST` — devia ser `NOT_FOUND`: recurso que não existe é 404; 400 é requisição malformada (conferido em 17/09, `GlobalExceptionHandler.java`, ainda não corrigido apesar do commit `3187b17` dizer que sim)
-- [x] POST de lançamento devolvendo `CREATED` (conferido em 17/09)
-- [x] `update` recebendo `categoriaId` e deixando o service resolver a `Categoria` via `resolverCategoria` privado compartilhado com o `create` — `CategoriaService` tirado do controller, `Categoria`/`Optional` sem uso removidos dos imports
-- [ ] **Listagem com mês obrigatório + `categoriaId` opcional + `Pageable`** — o miolo do passo, e o que ainda justifica os dois métodos `Page<Lancamento>` do repository. `Pageable` como parâmetro do controller não precisa de anotação (o Spring lê `page`/`size`/`sort` da query); `categoriaId` é `Long` (wrapper, chega `null` quando não vem) com `@RequestParam(required = false)`. O service converte mês em intervalo (`YearMonth.atDay(1)` / `atEndOfMonth()` dão exatamente o par de `LocalDate` que o repository pede) e escolhe qual dos dois métodos chamar. Converter a página com `Page.map(...)`, não com `for`+`ArrayList`. Se o binding de `YearMonth` em `@RequestParam` não pegar `2026-09` direto, o sintoma é 400 de conversão → `@DateTimeFormat`. Decidir também se o `GET /lancamentos` sem filtro (`findALL`/`getAll()`) continua existindo depois disso
-- [ ] `@Transactional` no `update` do service — os três passos (`findById` → `atualizar` → `save`) hoje caem em transações separadas; com o método transacional a entidade fica *managed* do início ao fim e o dirty check do Hibernate flusha no commit, o que torna o `save` desnecessário. Entender **por que** o `save` sobra é o ponto do item, não só anotar
-- [ ] `existsByDescricaoAndIdNot` está morta no repository — provavelmente sai (dois almoços no mês têm a mesma descrição de propósito); só fica se descrição repetida for erro de verdade
-- [ ] Limpeza menor: `findALL` → `findAll` (camelCase como o resto do projeto); `@GetMapping("{id}")`/`@DeleteMapping("{id}")` sem a barra inicial, únicos assim no projeto
-- Decisão: filtro por categoria na listagem é **opcional**, filtro por mês é **obrigatório** — às vezes quero ver todas as transações do período, não só de uma categoria. O service decide qual método do repository chamar dependendo se `categoriaId` veio na requisição
+- [x] `LancamentoController` — CRUD completo (`create`/`findAll`/`findById`/`update`/`delete`) + `filterByMonth` (`@GetMapping(params = "mes")`: `YearMonth mes` obrigatório, `Long categoriaId` opcional, `Pageable`, retorno `Page<LancamentoResponse>` via `.map(LancamentoResponse::new)`)
+- [x] POST devolve `CREATED`; `update` recebe `categoriaId` e o service resolve a `Categoria` (sem `CategoriaService` no controller)
+- [x] `@Transactional` no `update` de `LancamentoService` e `CategoriaService`, `save()` removido dos dois
+- [x] Limpezas: `findALL` → `findAll`, `/{id}` em todos os mappings
+- [ ] **Teste manual** com o banco no ar: `GET /lancamentos?mes=2026-09` com e sem `categoriaId`, `page`/`size`/`sort`, 404 de lançamento inexistente, 201 no POST. Se o `mes` der 400 de conversão → `@DateTimeFormat(pattern = "yyyy-MM")` no parâmetro
+- Decisão: filtro por categoria na listagem é **opcional**, filtro por mês é **obrigatório** (`YearMonth`, não datas soltas — intervalo sempre válido, sem validar `inicio <= fim`). O service decide qual método do repository chamar dependendo se `categoriaId` veio na requisição
+- Decisão: `GET /lancamentos` sem filtro **continua existindo** ao lado do filtrado por mês; o Spring roteia pelo parâmetro `mes` (`params = "mes"`)
+- `categoriaId` inexistente no filtro devolve página vazia com 200, não 404 — filtrar por algo que não existe é resposta vazia válida (não chama `resolverCategoria` no filtro)
+- `@Transactional` e o `save()` que sobra: sem a anotação, cada chamada de repository abre a própria transação, então `findById` devolve a entidade *detached* e o `save` é quem reconecta. Com a anotação a entidade fica *managed* do início ao fim, o `atualizar` mexe num objeto que o Hibernate já rastreia e o *dirty checking* dispara o `UPDATE` no commit. Vale só pra `update` — `create` (INSERT) e `delete` (`deleteById`) não dependem de dirty check
+- `Page` é imutável: converter itens com `page.map(...)` mantém `totalElements`/`totalPages`. `for` + `ArrayList` gera `List` e perde a paginação; `getContent()` também
+- Duas rotas `@GetMapping` sem path colidem; `@GetMapping(params = "mes")` desempata pela presença do parâmetro na query
+- Autocomplete do IntelliJ injetou `PlaceholderConfigurerSupport` no construtor do `LancamentoController` (import errado, mesma família dos `Page` homônimos): a app quebraria na subida com bean não encontrado. Conferir imports e construtor depois de aceitar sugestão
+- Spring Data recente avisa no log ao serializar `PageImpl` direto; se aparecer, `@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)` ou `PagedModel`
 - Decisão: toda transação sempre tem categoria (nunca `null`) — se não tiver uma específica, cadastro uma categoria "Outro"
 - `valor`: validação certa é `valor.compareTo(BigDecimal.ZERO) <= 0` pra garantir positivo — a primeira tentativa comparava `valor.toString().isBlank()`, que nunca disparava (um `BigDecimal` nunca gera string vazia, nem sendo zero ou negativo)
 - `data` é `LocalDate`, não `LocalDateTime` — a coluna no banco é `DATE` (migration `V1`), tipo incompatível quebraria a subida com `ddl-auto: validate`

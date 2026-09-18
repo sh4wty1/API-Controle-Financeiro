@@ -4,10 +4,13 @@ import dev.fassi.financas.categoria.Categoria;
 import dev.fassi.financas.categoria.CategoriaRepository;
 import dev.fassi.financas.shared.CategoriaNaoEncontradaException;
 import dev.fassi.financas.shared.LancamentoNaoEncontradoException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 
 @Service
@@ -48,12 +51,24 @@ public class LancamentoService {
         return lancamentoRepository.findAll();
     }
 
+    // GET filtrado por mês
+    public Page<Lancamento> filterByMonth(YearMonth mes, Long categoriaId, Pageable pageable) {
+        LocalDate inicio = mes.atDay(1);
+        LocalDate fim = mes.atEndOfMonth();
+        if (categoriaId != null) {
+            return lancamentoRepository.findByCategoriaIdAndDataBetween(categoriaId, inicio, fim, pageable);
+        } else {
+            return lancamentoRepository.findByDataBetween(inicio, fim, pageable);
+        }
+    }
+
     //PUT
+    @Transactional
     public Lancamento update(Long id, String descricao, Long categoriaId, BigDecimal valor, LocalDate data) {
         Lancamento lancamento = findById(id);
 
         lancamento.atualizar(descricao, valor, resolverCategoria(categoriaId), data);
-        return lancamentoRepository.save(lancamento);
+        return lancamento;
     }
 
     //DELETE
