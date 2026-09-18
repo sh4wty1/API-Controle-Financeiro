@@ -1,0 +1,11 @@
+# Correção do stop hook de registro de tarefa
+
+**Por quê:** o hook `~/.claude/hooks/task-record-check.sh` bloqueou o encerramento de uma sessão puramente de revisão (nenhum arquivo alterado pela IA) e depois voltou a bloquear mesmo com o registro já salvo em `docs/tasks/`, impedindo encerrar a sessão duas vezes seguidas.
+
+**O quê:** dois bugs corrigidos. (1) A checagem de "houve trabalho" era `grep '"name" *: *"(Write|Edit|NotebookEdit)"'` no transcript, que casa com as *definições* das ferramentas dentro do snapshot do system prompt (linha de `attachment.type == "prompt_snapshot"`) — falso positivo em qualquer sessão que só leu arquivos. Agora só chamadas reais (`.type == "tool_use"`) contam, via `jq`, e `Bash` com comando de escrita também conta (no modo bypass as edições saem por heredoc/`sed`, não por `Write`). (2) A checagem de "registro já existe" era `grep '"file_path" *: *"[^"]*docs/tasks/'`, que só enxergava registro escrito por `Write`/`Edit`; registro escrito por Bash ficava invisível. Agora checa o arquivo em disco (`find docs/tasks -name "$(date +%F)-*.md"`), independente da ferramenta, exigindo mtime posterior ao início da sessão para que um registro de outra sessão do mesmo dia não valha pela atual.
+
+**Como:** reescrita de `~/.claude/hooks/task-record-check.sh` (backup em `.sh.bak`); raiz do projeto derivada de `.cwd` do input do hook + `git rev-parse --show-toplevel`; início da sessão lido do primeiro `.timestamp` do transcript. A guarda `stop_hook_active` contra loop foi mantida. Nada alterado no código do projeto.
+
+**Verificação:** `bash -n` e 5 cenários rodados contra transcripts reais e sintéticos, comparando script novo e antigo: registro presente → silêncio; sem registro → `block`; sessão só de leitura → silêncio (antigo: `block`, bug reproduzido); edição por heredoc sem registro → `block` (antigo: silêncio, bug reproduzido); `stop_hook_active: true` → silêncio.
+
+**Pendências:** a deteção de escrita por Bash é heurística (redirecionamento com `>` descontando `2>/dev/null`/`>&1`, mais `tee`/`sed -i`/`cp`/`mv`/`rm`/`touch`/`git commit|apply|am`) — um `>` dentro de um heredoc ou de um padrão de busca conta como escrita. Erra pro lado de cobrar, que é o comportamento desejado.
