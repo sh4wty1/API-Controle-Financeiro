@@ -32,7 +32,8 @@ O usuário aprende Angular construindo este projeto e quer **aprender de verdade
 - **Standalone components** (sem `NgModule`), **signals** para estado local, **control flow novo** (`@if`, `@for`, `@switch`), `inject()` em vez de injeção por construtor quando fizer sentido. Se algum tutorial usar `NgModule` ou `*ngIf`/`*ngFor`, é o estilo antigo: avise e ensine o atual.
 - Dados: `HttpClient` (`provideHttpClient(withFetch())`). **RxJS** entra como Angular exige (`Observable`), sem se aprofundar em operadores antes da hora.
 - Formulários: **Reactive Forms** (`FormBuilder`, `Validators`). Não usar template-driven.
-- Estilo: CSS puro (por componente). Angular Material ou Tailwind ficam pra depois, se ele quiser.
+- Estilo: **Tailwind CSS** (escolhido no `ng new`). O CSS por componente do Angular continua valendo pra casos pontuais. Nada de biblioteca de componentes (Angular Material etc.) por enquanto: ele monta os componentes reutilizáveis na mão.
+- **Sem SSR/SSG** (respondido "não" no `ng new`): é uma SPA servida como arquivos estáticos pelo Caddy. Se algum tutorial falar em hidratação ou `isPlatformBrowser`, é SSR: explique que não se aplica aqui.
 - Gerenciador de pacotes: o padrão do CLI (npm). Bun também funciona, mas confirme com ele antes de usar.
 - Testes: o runner que o CLI gerar por padrão na versão instalada.
 - Sem autenticação e **sem CORS configurado no Spring** (autenticação está fora da v1 da API).
@@ -191,6 +192,7 @@ Cada passo termina no critério; o tutor só avança quando ele é atendido.
 - Moeda: `valor` chega como `number`. Totais devem vir da API; somar decimais em `number` no front gera `0.1 + 0.2`.
 - `@for` exige `track` (use `track item.id`). Sem ele o build falha.
 - Editar `proxy.conf.json` ou `angular.json` exige reiniciar o `ng serve`.
+- Tailwind: classes montadas dinamicamente (`'text-' + cor`) **não são geradas** no build, porque o Tailwind só reconhece nomes completos no código. Use classes inteiras (`'text-red-600'`) e escolha entre elas com `@if` ou `[class]`.
 - Detecção de mudança: com signals, atualize com `.set()`/`.update()`. Mutar objeto dentro do signal (`s().x = 1`) não dispara re-render.
 - Suporte a `<input type="month">` varia por navegador; confira no que ele usa.
 
