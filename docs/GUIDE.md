@@ -18,7 +18,7 @@ Objetivo: aprender Java + Spring escrevendo tudo na mão. IA só explica, não e
 - tipo do lançamento deve bater com o tipo da categoria
 - categoria com lançamentos não pode ser apagada
 
-Fora da v1: autenticação, front, Lombok.
+Fora da v1: autenticação, Lombok. O front é um projeto de estudo à parte, em Angular, na pasta `web/` deste mesmo repo (ver `ROADMAP.md`, Passo 8, e `frontend-briefing-angular.md`).
 
 ---
 

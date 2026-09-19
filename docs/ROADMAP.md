@@ -5,7 +5,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 
 > **Retomando com IA:** "Leia `docs/GUIDE.md` e `docs/ROADMAP.md` e me ajude a continuar de onde parei."
 
-**Última atualização:** 19/09/2026, passo 5 fechado: os 500 e o acabamento pendentes foram corrigidos e testados (400 em `valor <= 0`, 409 ao apagar categoria em uso, mensagens em português, `Page` via DTO). Próximo: Passo 6 (relatório) e Passo 7 (testes). Front de verdade adiado (ver Passo 8)
+**Última atualização:** 19/09/2026, passo 5 fechado: os 500 e o acabamento pendentes foram corrigidos e testados (400 em `valor <= 0`, 409 ao apagar categoria em uso, mensagens em português, `Page` via DTO). Repo reestruturado em monorepo (`api/` + `web/`), front decidido em Angular (ver Passo 8). Próximo: Passo 6 (relatório) e Passo 7 (testes) na API; no front, `ng new web --skip-git` e seguir o briefing
 
 ---
 
@@ -24,12 +24,12 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - [x] `docker compose up -d`
 - [x] Configurar `application.yaml`: `datasource.url/username/password`, `jpa.hibernate.ddl-auto: validate`, `jpa.show-sql: true`
 - [x] Rodar `FinancasApplication` e ler o log/erro com calma
-- [x] ~~Apagar `src/main/resources/templates/`~~ → decidi manter, quero experimentar front aqui também (ver Decisões)
+- [x] ~~Apagar `api/src/main/resources/templates/`~~ → decidi manter, quero experimentar front aqui também (ver Decisões)
 - [x] Responder: quais 3 anotações `@SpringBootApplication` agrupa? Qual faz o scan dos pacotes?
   → `@SpringBootConfiguration` + `@EnableAutoConfiguration` + `@ComponentScan` (essa faz o scan)
 
 ### Passo 2: Migration `V1__criar_tabelas.sql` ✅
-- [x] Criar em `src/main/resources/db/migration/`
+- [x] Criar em `api/src/main/resources/db/migration/`
 - [x] `categoria`: id identity, nome (unique, not null), tipo com `CHECK (tipo IN ('RECEITA','DESPESA'))`
 - [x] `lancamento`: id identity, descricao, valor `NUMERIC(19,2)`, data `DATE`, FK `categoria_id`
 - [x] Flyway aplicou na subida da app (`flyway_schema_history` versão 1, success)
@@ -102,9 +102,9 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - Ordem sugerida: record de resposta, `@Query`, service, controller
 ### Passo 7: Testes
 
-### Passo 8: Front (adiado)
-- `src/main/resources/static/index.html` já existe, mas é só um **console de teste da API**, gerado pela IA por liberação minha (ver `docs/tasks/2026-09-18-static-teste-api.md`), não o front de verdade. Servido pelo Spring em `localhost:8080`, mesma origem, sem CORS
-- Front de verdade: projeto separado, Bun + Vite + React + TypeScript. Briefing pra sessão dele em [frontend-briefing.md](frontend-briefing.md) (copiar como `CLAUDE.md` na raiz do projeto novo). Front separado traz o CORS de volta: resolver com proxy do Vite, prefixo `/api`
+### Passo 8: Front (Angular, em `web/`)
+- `api/src/main/resources/static/index.html` já existe, mas é só um **console de teste da API**, gerado pela IA por liberação minha (ver `docs/tasks/2026-09-18-static-teste-api.md`), não o front de verdade. Servido pelo Spring em `localhost:8080`, mesma origem, sem CORS
+- Front de verdade: **Angular** + TypeScript em `web/`, no mesmo repo (monorepo, reestruturado em 19/09/2026). Briefing pra sessão dele em [frontend-briefing-angular.md](frontend-briefing-angular.md) (copiar como `web/CLAUDE.md` depois do `ng new web --skip-git`). Origem diferente (4200 x 8080): resolver com o proxy do `ng serve`, prefixo `/api`, sem CORS no Spring
 - Depois: talvez um projeto com web e app juntos. A API é a mesma pra qualquer cliente
 - Antes de qualquer front em produção falta autenticação (Spring Security), fora da v1
 
@@ -118,7 +118,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 | Autocomplete de IA desligado (Full Line / AI Assistant) | Regra do GUIDE: IA não escreve código. Code completion normal (`Ctrl+Space`) fica ligado |
 | Banco via Docker **no PC de casa** | PC do trabalho: licença do Docker Desktop + política de TI |
 | Banco de dev na VPS (container `financas-db-db-1`), por túnel SSH | Em 18/09, nesta máquina Linux não há Docker. A porta 5432 da VPS é de outro projeto: o túnel aponta pra 5433. Senha só no compose da VPS, via `SPRING_DATASOURCE_PASSWORD` |
-| Front de verdade em projeto separado (Bun + Vite + React + TS), **adiado** | Mercado. `static/index.html` fica só como console de teste da API. O GUIDE segue com "Fora da v1: front" |
+| ~~Front em projeto separado (Bun + Vite + React + TS)~~ → front em **Angular**, no **mesmo repo** (`api/` + `web/`) | Decisão de 19/09/2026: aprender Angular do mesmo jeito que a API (IA só explica e revisa). Um repo só, com commits separados por lado (`feat(web)`, `fix(api)`). `static/index.html` fica só como console de teste da API |
 | Manter blocos vazios do `pom.xml` (`<licenses/>` etc.) | Evitam herdar licença/devs do parent (ver HELP.md) |
 
 Banco na VPS (adotado em 18/09): container `financas-db-db-1` em `127.0.0.1:5433` da VPS, compose em `/opt/financas-db/docker-compose.yml`, túnel `ssh -N -L 5432:127.0.0.1:5433 fassi-vps` (o exemplo antigo com `5432:localhost:5432` cairia no banco de outro projeto). Outras alternativas: Neon/Supabase, ou H2.
@@ -128,7 +128,7 @@ Banco na VPS (adotado em 18/09): container `financas-db-db-1` em `127.0.0.1:5433
 ## Setup numa máquina nova
 
 1. Instalar JDK 21, IntelliJ e Docker Desktop (WSL2)
-2. `git clone` e abrir no IntelliJ: **File → Open → `pom.xml` → Open as Project**
+2. `git clone` e abrir no IntelliJ: **File → Open → `api/pom.xml` → Open as Project**
 3. `Ctrl+Alt+Shift+S` → Project → SDK **21**, Language level **SDK default** → Apply
 4. Esperar o Maven sincronizar (se não tiver nada pra baixar, some rápido sem barra de progresso)
 
@@ -136,13 +136,13 @@ Banco na VPS (adotado em 18/09): container `financas-db-db-1` em `127.0.0.1:5433
 
 ## Pegadinhas que já aprendi
 
-- **Editar `static/` e não ver mudança**: o Spring serve de `target/classes`, não de `src/`. `Ctrl+F9` (Build) no IntelliJ ou `./mvnw process-resources`, depois F5 no navegador
+- **Editar `static/` e não ver mudança**: o Spring serve de `target/classes`, não de `src/`. `Ctrl+F9` (Build) no IntelliJ ou `./mvnw process-resources` (dentro de `api/`), depois F5 no navegador
 - **Subir a app com o banco da VPS**: abrir o túnel (`ssh -N -L 5432:127.0.0.1:5433 fassi-vps`) e passar `SPRING_DATASOURCE_PASSWORD` na run configuration do IntelliJ. Nunca a senha no `application.yaml`, ele é commitado. Se a 8080 estiver ocupada, tem outra instância da app rodando
 - **Pacote com hífen quebra tudo**: pasta = pacote, e hífen é inválido. Sintoma: `New → Java Class` some do menu
 - **Atalhos não funcionam com foco no terminal**: `Esc` volta pro editor. Settings → Tools → Terminal → desmarcar "Override IDE shortcuts"
 - **`Shift Shift`**: busca qualquer ação e mostra o atalho dela
 - **`Alt+Enter`**: quick fix de qualquer coisa vermelha/amarela
-- **Nome do módulo** no IntelliJ pode ficar desatualizado. É só um rótulo. Pra corrigir: fechar IDE, apagar `.idea/`, reabrir pelo `pom.xml`
+- **Nome do módulo** no IntelliJ pode ficar desatualizado. É só um rótulo. Pra corrigir: fechar IDE, apagar `.idea/`, reabrir pelo `api/pom.xml`
 - **`contextLoads` falha sem banco rodando**: afeta `mvnw test` e `mvnw package`
 - **`POSTGRES_*` no compose só valem na 1ª inicialização**: mudou senha? `docker compose down -v`
 - **Git não versiona pasta vazia**: `static/` e `db/migration/` só aparecem no repo quando tiverem arquivo

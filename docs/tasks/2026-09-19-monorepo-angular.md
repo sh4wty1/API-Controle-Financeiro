@@ -1,0 +1,7 @@
+# Monorepo e briefing do front em Angular
+
+**Por quê:** o usuário decidiu fazer o front em Angular (aprendendo do mesmo jeito que a API) e no mesmo repositório, em vez do projeto separado em React.
+**O quê:** API movida pra `api/` com `git mv` (`pom.xml`, `mvnw`, `mvnw.cmd`, `.mvn/`, `src/`), histórico preservado. `docker-compose.yml`, `docs/` e `README.md` ficam na raiz; o front vai em `web/`. Novo `docs/frontend-briefing-angular.md` (papel de tutor, stack, proxy `/api` do `ng serve`, contrato da API, telas e rotas com página 404, checklist de produto, roteiro em 13 passos, mapa Spring → Angular, pegadinhas). `docs/frontend-briefing.md` (React) apagado. Ajustados `.gitignore` (caminho do wrapper, `node_modules/`, `.angular/`), `.gitattributes` (`/api/mvnw`), README, GUIDE e ROADMAP.
+**Como:** só arquivos e documentação, nenhum código da API alterado.
+**Verificação:** `./mvnw -DskipTests compile` dentro de `api/` passou. O formato do `Page` com `VIA_DTO` descrito no briefing vem da documentação do Spring, não foi conferido contra a API rodando.
+**Pendências:** reabrir o projeto no IntelliJ por `api/pom.xml` e refazer a run configuration (com `SPRING_DATASOURCE_PASSWORD`); criar o front com `ng new web --skip-git` na raiz e copiar o briefing como `web/CLAUDE.md`; opcional: renomear o repo no GitHub (ex.: `controle-financeiro`). Registros antigos em `docs/tasks/` citam caminhos sem `api/` (histórico, não atualizados).
