@@ -1,5 +1,7 @@
 package dev.fassi.financas.categoria;
 
+import dev.fassi.financas.lancamento.LancamentoRepository;
+import dev.fassi.financas.shared.CategoriaEmUsoException;
 import dev.fassi.financas.shared.CategoriaNaoEncontradaException;
 import dev.fassi.financas.shared.CategoriaNomeDuplicadoException;
 import org.springframework.stereotype.Service;
@@ -11,9 +13,11 @@ import java.util.List;
 public class CategoriaService {
 
     private final CategoriaRepository repository;
+    private final LancamentoRepository lancamentoRepository;
 
-    public CategoriaService(CategoriaRepository repository) {
+    public CategoriaService(CategoriaRepository repository, LancamentoRepository lancamentoRepository) {
         this.repository = repository;
+        this.lancamentoRepository = lancamentoRepository;
     }
 
     // POST
@@ -29,7 +33,7 @@ public class CategoriaService {
     //GET
     public Categoria findById(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new CategoriaNaoEncontradaException("Categoria nao encontrada"));
+                .orElseThrow(() -> new CategoriaNaoEncontradaException("Categoria não encontrada"));
     }
 
     public List<Categoria> getAll() {
@@ -40,7 +44,7 @@ public class CategoriaService {
     @Transactional
     public Categoria update(Long id, String nome, TipoCategoria tipo) {
         if (repository.existsByNomeAndIdNot(nome, id)) {
-            throw new CategoriaNomeDuplicadoException("Ja existe uma categoria com esse nome");
+            throw new CategoriaNomeDuplicadoException("Já existe uma categoria com esse nome");
         }
 
         Categoria categoria = findById(id);
@@ -50,8 +54,13 @@ public class CategoriaService {
 
     // DELETE
     public Categoria delete(Long id) {
-        Categoria categoria = findById(id);
-        repository.deleteById(id);
-        return categoria;
+        if (lancamentoRepository.existsByCategoriaId(id)) {
+            throw new CategoriaEmUsoException("Categoria possui lançamentos e não pode ser apagada");
+        } else {
+            Categoria categoria = findById(id);
+            repository.deleteById(id);
+            return categoria;
+        }
+
     }
 }

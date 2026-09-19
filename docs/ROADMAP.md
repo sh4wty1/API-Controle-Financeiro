@@ -5,7 +5,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 
 > **Retomando com IA:** "Leia `docs/GUIDE.md` e `docs/ROADMAP.md` e me ajude a continuar de onde parei."
 
-**Última atualização:** 18/09/2026, passo 5 fechado e testado contra o banco real (Postgres na VPS, por túnel SSH) com `static/index.html`, um console de teste da API. O teste achou 2 buracos que devolvem 500 (ver Passo 5). Próximo: corrigir esses 500 no `GlobalExceptionHandler` e Passo 6 (relatório). Front de verdade adiado (ver Passo 8)
+**Última atualização:** 19/09/2026, passo 5 fechado: os 500 e o acabamento pendentes foram corrigidos e testados (400 em `valor <= 0`, 409 ao apagar categoria em uso, mensagens em português, `Page` via DTO). Próximo: Passo 6 (relatório) e Passo 7 (testes). Front de verdade adiado (ver Passo 8)
 
 ---
 
@@ -56,7 +56,7 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - [x] `update` agora checa duplicado com `existsByNomeAndIdNot(nome, id)` — exclui a própria categoria da comparação, senão bloqueava atualizar mantendo o mesmo nome
 - `throw new X(...)` não precisa de `return`: interrompe o método e sobe a exceção, não devolve valor
 - `.orElseThrow()` é método de `Optional` — não existe em `Categoria`/`List`, só em quem já é `Optional<T>` (ex: `repository.findById(id)`)
-### Passo 5: Lançamentos + regras ✅ (testado; falta tratar 2 erros, abaixo)
+### Passo 5: Lançamentos + regras ✅
 - [x] `Lancamento` (@Entity): id identity, descricao/valor/data/categoria, validação centralizada no método `atualizar` (chamado também pelo construtor), sem setters soltos — mesmo padrão da `Categoria`
 - [x] `LancamentoRepository` (extends JpaRepository<Lancamento, Long>): `findByCategoriaIdAndDataBetween` e `findByDataBetween`, os dois com `Pageable`/`Page<Lancamento>`, ambos chamados pelo `filterByMonth` do service. `existsByDescricaoAndIdNot` removida (dois lançamentos com a mesma descrição são válidos)
 - [x] `LancamentoService`: `create`, `findById`, `getAll`, `filterByMonth`, `update`, `delete` — mesmo padrão do `CategoriaService` (`findById` lança `LancamentoNaoEncontradoException` via `orElseThrow`, cobre `update`/`delete` de graça). `resolverCategoria` privado compartilhado por `create` e `update`
@@ -67,10 +67,10 @@ Conceitos e regras ficam no [GUIDE.md](GUIDE.md), aqui é só progresso e decis�
 - [x] `@Transactional` no `update` de `LancamentoService` e `CategoriaService`, `save()` removido dos dois
 - [x] Limpezas: `findALL` → `findAll`, `/{id}` em todos os mappings
 - [x] **Teste manual** contra o banco real (18/09, via `curl` e pela página `static/index.html`): todas as rotas OK — 201 nos POST, filtro de mês com e sem `categoriaId`, `page`/`size`/`sort`, mês sem dados e `categoriaId` inexistente devolvem 200, 404 nos inexistentes, 409 em nome duplicado, `PUT` com o mesmo nome passa. `mes` no formato `yyyy-MM` converteu sem `@DateTimeFormat`
-- [ ] `valor <= 0` (e qualquer `IllegalArgumentException` da entidade) devolve **500**: não tem handler. Deveria ser 400 → `@ExceptionHandler(IllegalArgumentException.class)` no `GlobalExceptionHandler`
-- [ ] `DELETE /categorias/{id}` com lançamentos devolve **500** (a FK `lancamento_categoria_id_fkey` barra, mas o erro não é tratado). Deveria ser 409 (regra do GUIDE: "categoria com lançamentos não pode ser apagada"). Duas saídas: tratar `DataIntegrityViolationException` no handler, ou checar no service antes de apagar
-- [ ] Mensagens de validação saem em inglês (`must not be blank`): `message = "..."` nas anotações dos DTOs
-- [ ] Aviso no log `Serializing PageImpl instances as-is is not supported`: decidir entre `PagedModel` e `@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)`. O JSON atual do `Page` traz `content`, `totalElements`, `totalPages`, `number`, `size`, `first`, `last`, `empty`, `pageable`, `sort`
+- [x] `valor <= 0` (e qualquer `IllegalArgumentException` da entidade) devolvia 500, agora 400: `@ExceptionHandler(IllegalArgumentException.class)` no `GlobalExceptionHandler`, mais `@Positive` no `LancamentoRequest`
+- [x] `DELETE /categorias/{id}` com lançamentos devolvia 500, agora 409: `CategoriaService.delete` faz `findById` (404) e checa `LancamentoRepository.existsByCategoriaId` antes de apagar, lançando `shared/CategoriaEmUsoException` (handler devolve `CONFLICT`)
+- [x] Mensagens de validação em português: `message = "..."` nas anotações dos DTOs
+- [x] Aviso `Serializing PageImpl instances as-is is not supported` resolvido com `@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)` na `FinancasApplication`. O JSON do `Page` mudou: `content` + objeto `page` (`size`, `number`, `totalElements`, `totalPages`)
 - Exceção sem `@ExceptionHandler` vira 500 com o JSON padrão do Spring (`timestamp`, `status`, `error`, `path`), sem mensagem útil; `mes=abc` cai no mesmo formato, com 400
 - Estado do banco da VPS depois do teste: categoria 1 "Salário" e lançamento 1 "Mercado (editado)" (dados de teste)
 - Decisão: filtro por categoria na listagem é **opcional**, filtro por mês é **obrigatório** (`YearMonth`, não datas soltas — intervalo sempre válido, sem validar `inicio <= fim`). O service decide qual método do repository chamar dependendo se `categoriaId` veio na requisição

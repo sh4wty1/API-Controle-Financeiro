@@ -37,4 +37,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleLancamentoNaoEncontradoException(LancamentoNaoEncontradoException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
     }
+
+    @ExceptionHandler(CategoriaEmUsoException.class)
+    public ResponseEntity<String> handleCategoriaEmUsoException(CategoriaEmUsoException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(exception.getMessage());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception.getMessage());
+    }
 }

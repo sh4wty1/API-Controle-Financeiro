@@ -10,4 +10,6 @@ public interface LancamentoRepository extends JpaRepository<Lancamento, Long> {
     Page<Lancamento> findByCategoriaIdAndDataBetween(Long categoriaId, LocalDate initialData, LocalDate finalData, Pageable pageable);
 
     Page<Lancamento> findByDataBetween(LocalDate initialData, LocalDate finalData, Pageable pageable);
+
+    boolean existsByCategoriaId(Long id);
 }

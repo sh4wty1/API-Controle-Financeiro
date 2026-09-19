@@ -73,8 +73,10 @@ public class LancamentoService {
 
     //DELETE
     public Lancamento delete(Long id) {
-
         Lancamento lancamento = findById(id);
+        if (lancamento == null) {
+        throw new LancamentoNaoEncontradoException("Lançamento não encontrado");
+        }
         lancamentoRepository.delete(lancamento);
         return lancamento;
     }

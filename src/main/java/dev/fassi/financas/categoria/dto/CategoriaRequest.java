@@ -6,10 +6,10 @@ import jakarta.validation.constraints.NotNull;
 
 public record CategoriaRequest(
 
-        @NotBlank
+        @NotBlank(message = "A categoria deve ter um nome")
         String nome,
 
-        @NotNull
+        @NotNull(message = "O tipo não pode ser nulo")
         TipoCategoria tipo
 ) {
 }
